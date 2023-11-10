@@ -84,7 +84,11 @@ func GetLeagueLB(country string) ([]LeagueUser, error) {
 
 	result := make([]LeagueUser, 0)
 	for i := range g {
-		if g[i].Country != nil && strings.EqualFold(*g[i].Country, country) {
+		var c string
+		if g[i].Country != nil {
+			c = *g[i].Country
+		}
+		if strings.EqualFold(c, country) {
 			result = append(result, g[i])
 		}
 	}
