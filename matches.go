@@ -1,6 +1,7 @@
 package tetrio
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/url"
@@ -45,8 +46,8 @@ type LeaguePlayer struct {
 	RoundStats   []VersusStats
 }
 
-func GetMatches(userID string) ([]LeagueRecord, error) {
-	return send[[]LeagueRecord]("/streams/league_userrecent_" + url.PathEscape(userID))
+func (s Session) GetMatches(ctx context.Context, userID string) ([]LeagueRecord, error) {
+	return send[[]LeagueRecord](ctx, s, "/streams/league_userrecent_"+url.PathEscape(userID))
 }
 
 func (g *LeagueRecord) UnmarshalJSON(data []byte) error {

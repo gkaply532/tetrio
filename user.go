@@ -1,6 +1,7 @@
 package tetrio
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -78,12 +79,12 @@ func (e NoUserError) Unwrap() error {
 	return e.wrapped
 }
 
-func GetUser(name string) (*FullUser, error) {
+func (s Session) GetUser(ctx context.Context, name string) (*FullUser, error) {
 	if len(name) > 60 {
 		return nil, errors.New("tetrio: long username")
 	}
 	endpoint := "/users/" + url.PathEscape(strings.ToLower(name))
-	user, err := send[*FullUser](endpoint)
+	user, err := send[*FullUser](ctx, s, endpoint)
 	var tetrioErr Error
 	if errors.As(err, &tetrioErr) && strings.Contains(
 		strings.ToLower(string(tetrioErr)),
@@ -99,6 +100,6 @@ func GetUser(name string) (*FullUser, error) {
 
 // SearchUser returns the PartialUser that has their Discord account linked with
 // TETR.IO. returns a zero PartialUser if no user is found.
-func SearchUser(discordID string) (PartialUser, error) {
-	return send[PartialUser]("/users/search/" + url.PathEscape(discordID))
+func (s Session) SearchUser(ctx context.Context, discordID string) (PartialUser, error) {
+	return send[PartialUser](ctx, s, "/users/search/"+url.PathEscape(discordID))
 }

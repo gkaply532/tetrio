@@ -1,6 +1,7 @@
 package tetrio
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -76,8 +77,8 @@ func wellKnownTempPath(name string) string {
 // TODO(gkm): The results of these exported functions should be cached because
 // they are expensive to run.
 
-func GetLeagueLB(country string) ([]LeagueUser, error) {
-	g, err := GetLeagueLBGlobal()
+func (s Session) GetLeagueLB(ctx context.Context, country string) ([]LeagueUser, error) {
+	g, err := s.GetLeagueLBGlobal(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +96,7 @@ func GetLeagueLB(country string) ([]LeagueUser, error) {
 	return result, nil
 }
 
-func GetLeagueLBGlobal() ([]LeagueUser, error) {
+func (s Session) GetLeagueLBGlobal(ctx context.Context) ([]LeagueUser, error) {
 	leagueDumpLock.Lock()
 	defer leagueDumpLock.Unlock()
 	file, err := os.OpenFile(leagueDumpPath, os.O_RDWR|os.O_CREATE, 0666)
@@ -131,7 +132,7 @@ func GetLeagueLBGlobal() ([]LeagueUser, error) {
 			return nil, err
 		}
 
-		resp, err := makeRequest("/users/lists/league/all")
+		resp, err := s.makeRequest(ctx, "/users/lists/league/all")
 		if err != nil {
 			return nil, err
 		}
@@ -166,8 +167,8 @@ func cutoffsSlice() []RankRange {
 	return result
 }
 
-func GetCutoffs() ([]RankRange, error) {
-	lb, err := GetLeagueLBGlobal()
+func (s Session) GetCutoffs(ctx context.Context) ([]RankRange, error) {
+	lb, err := s.GetLeagueLBGlobal(ctx)
 	if err != nil {
 		return nil, err
 	}
