@@ -38,10 +38,10 @@ type LeagueUser struct {
 	PartialUser
 
 	Role      string         `json:"role"`
-	XP        *float64       `json:"xp"`
-	Country   *string        `json:"country"`
+	XP        *float64       `json:"xp,omitempty"`
+	Country   *string        `json:"country,omitempty"`
 	Supporter bool           `json:"supporter"`
-	Verified  *bool          `json:"verified"`
+	Verified  *bool          `json:"verified,omitempty"`
 	League    PartialTLStats `json:"league"`
 }
 
