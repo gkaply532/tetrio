@@ -28,10 +28,13 @@ type Session struct {
 
 func New() Session {
 	n := rand.Uint64()
-	bs := make([]byte, 4)
+	bs := make([]byte, 8)
 	binary.BigEndian.PutUint64(bs, n)
 	h := hex.EncodeToString(bs)
-	return Session{ID: "SESS-" + h}
+	return Session{
+		ID:    "SESS-" + h,
+		cache: make(map[string]types.Response),
+	}
 }
 
 type StatusError struct {
@@ -90,6 +93,7 @@ func (s Session) Send(ctx context.Context, path string) (*types.Response, error)
 	if err != nil {
 		return nil, err
 	}
+	// TODO(gkm): Clear the cache entry when it expires.
 	s.cache[path] = result
 	return &result, nil
 }
