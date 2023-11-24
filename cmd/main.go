@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gkaply532/tetrio"
+	"github.com/gkaply532/tetrio/v2/types"
 	"golang.org/x/time/rate"
 )
 
@@ -48,7 +48,7 @@ func main() {
 
 			r.Body = io.NopCloser(buf)
 
-			var resp tetrio.Response
+			var resp types.Response
 			err = json.Unmarshal(buf.Bytes(), &resp)
 			if err != nil {
 				// We don't really care that we couldn't to parse the response.
@@ -56,7 +56,7 @@ func main() {
 				return nil
 			}
 
-			maxage := int64(math.Ceil(resp.Cache.Duration().Seconds()))
+			maxage := int64(math.Ceil(resp.Cache.TotalDuration().Seconds()))
 			age := int64(time.Since(resp.Cache.At.Time).Seconds())
 			if age < 0 {
 				age = 0

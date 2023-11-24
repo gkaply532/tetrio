@@ -1,4 +1,4 @@
-module github.com/gkaply532/tetrio
+module github.com/gkaply532/tetrio/v2
 
 go 1.21.0
 

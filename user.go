@@ -5,66 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
-	"time"
+
+	"github.com/gkaply532/tetrio/v2/types"
 )
-
-type PartialUser struct {
-	ID       string `json:"_id"`
-	Username string `json:"username"`
-}
-
-type Badge struct {
-	ID    string    `json:"id"`
-	Label string    `json:"label"`
-	TS    time.Time `json:"ts"`
-}
-
-type DiscordInfo struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-}
-
-type FullTLStats struct {
-	PartialTLStats
-
-	NextRank       string `json:"next_rank"`
-	PrevRank       string `json:"prev_rank"`
-	PercentileRank string `json:"percentile_rank"`
-
-	StandingLocal int     `json:"standing_local"`
-	NextAt        int     `json:"next_at"`
-	PrevAt        int     `json:"prev_at"`
-	Percentile    float64 `json:"percentile"`
-}
-
-type FullUser struct {
-	LeagueUser
-	League FullTLStats `json:"league"`
-
-	TS        time.Time `json:"ts"`
-	BotMaster string    `json:"botmaster"`
-	Badges    []Badge   `json:"badges"`
-
-	GamesPlayed int     `json:"gamesplayed"`
-	GamesWon    int     `json:"gameswon"`
-	GameTime    float64 `json:"gametime"`
-
-	BadStanding   bool `json:"badstanding"`
-	SupporterTier int  `json:"supporter_tier"`
-
-	AvatarRevision int64 `json:"avatar_revision"`
-	BannerRevision int64 `json:"banner_revision"`
-
-	Bio         string `json:"bio"`
-	FriendCount int    `json:"friend_count"`
-	Connections struct {
-		Discord DiscordInfo
-	} `json:"connections"`
-	Distinguishment struct {
-		Type string
-	} `json:"distinguishment"`
-}
 
 type NoUserError struct {
 	UID     string
@@ -79,27 +24,43 @@ func (e NoUserError) Unwrap() error {
 	return e.wrapped
 }
 
-func (s Session) GetUser(ctx context.Context, name string) (*FullUser, error) {
-	if len(name) > 60 {
-		return nil, errors.New("tetrio: long username")
-	}
-	endpoint := "/users/" + url.PathEscape(strings.ToLower(name))
-	user, err := send[*FullUser](ctx, s, endpoint)
-	var tetrioErr Error
-	if errors.As(err, &tetrioErr) && strings.Contains(
-		strings.ToLower(string(tetrioErr)),
-		"no such user",
-	) {
-		err = NoUserError{
-			UID:     name,
-			wrapped: err,
-		}
-	}
-	return user, err
+type SearchError uint64
+
+func (e SearchError) Error() string {
+	return fmt.Sprintf("tetrio: no linked user found for discord snowflake: %d", uint64(e))
 }
 
-// SearchUser returns the PartialUser that has their Discord account linked with
-// TETR.IO. returns a zero PartialUser if no user is found.
-func (s Session) SearchUser(ctx context.Context, discordID string) (PartialUser, error) {
-	return send[PartialUser](ctx, s, "/users/search/"+url.PathEscape(discordID))
+func (s Session) GetUser(ctx context.Context, name string) (*types.FullUser, error) {
+	if len(name) > 60 {
+		return nil, errors.New("tetrio: username too long")
+	}
+
+	endpoint := "/users/" + url.PathEscape(strings.ToLower(name))
+	user, err := do[*types.FullUser](ctx, s, endpoint)
+	if err != nil {
+		var tetrioErr Error
+		if errors.As(err, &tetrioErr) && strings.Contains(
+			strings.ToLower(string(tetrioErr)),
+			"no such user",
+		) {
+			return nil, NoUserError{
+				UID:     name,
+				wrapped: err,
+			}
+		}
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (s Session) SearchUser(ctx context.Context, discordID uint64) (types.PartialUser, error) {
+	user, err := do[types.PartialUser](ctx, s, "/users/search/"+url.PathEscape(strconv.FormatUint(discordID, 10)))
+	if err != nil {
+		return types.PartialUser{}, err
+	}
+	if user.ID == "" {
+		return types.PartialUser{}, SearchError(discordID)
+	}
+	return user, nil
 }
