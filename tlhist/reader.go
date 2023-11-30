@@ -2,6 +2,7 @@ package tlhist
 
 import (
 	"encoding/csv"
+	"errors"
 	"io"
 	"slices"
 )
@@ -40,12 +41,18 @@ func (r Reader) Next() (*Record, error) {
 func (r Reader) All(skipHeader bool) ([]Record, error) {
 	if skipHeader {
 		_, err := r.NextRaw()
+		if errors.Is(err, io.EOF) {
+			return []Record{}, nil
+		}
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	rec, err := r.Next()
+	if errors.Is(err, io.EOF) {
+		return []Record{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}
