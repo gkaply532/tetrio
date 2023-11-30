@@ -4,14 +4,29 @@ package tlhist
 import (
 	"bufio"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 )
 
 const Endpoint = "https://api.p1nkl0bst3r.xyz/tlhist/"
 
-func RawData(ctx context.Context, uid string) (io.ReadCloser, error) {
+var ErrInvalidUID = errors.New("tlhist: invalid uid")
+var ErrNotFound = errors.New("tlhist: not found")
+
+var idRegexp = regexp.MustCompile("^[a-fA-F0-9]{24}$")
+
+func isValidUID(id string) bool {
+	return idRegexp.MatchString(id)
+}
+
+func RawData(ctx context.Context, uid string) (r io.ReadCloser, err error) {
+	if !isValidUID(uid) {
+		return nil, ErrInvalidUID
+	}
+
 	req, err := http.NewRequestWithContext(ctx, "GET", Endpoint+url.PathEscape(uid), nil)
 	if err != nil {
 		return nil, err
@@ -20,6 +35,15 @@ func RawData(ctx context.Context, uid string) (io.ReadCloser, error) {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			resp.Body.Close()
+		}
+	}()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrNotFound
 	}
 
 	return resp.Body, nil
